@@ -31,10 +31,11 @@ with st.sidebar:
 
 st.write("Toca el Botón y habla lo que quires traducir")
 
-stt_button = Button(label=" Escuchar  🎤", width=300,  height=50)
+stt_button = Button(label="🎤 Hablar", width=180)
 
 stt_button.js_on_event("button_click", CustomJS(code="""
-    var recognition = new webkitSpeechRecognition();
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = new SpeechRecognition();
     recognition.continuous = false;  // Cambia a false
     recognition.interimResults = true;
     recognition.lang = 'es-ES';  // Puedes ajustar el idioma
