@@ -11,13 +11,13 @@ from googletrans import Translator
 
 # ---------------- CONFIG ----------------
 st.set_page_config(
-    page_title="🎤 Traductor Inteligente",
+    page_title="🎤 Traductor por Voz",
     page_icon="🌍",
     layout="centered"
 )
 
 st.title("🎤 Traductor por Voz")
-st.caption("Habla, traduce y escucha en segundos 🌍🔊")
+st.caption("Habla, traduce y escucha fácilmente 🌍🔊")
 
 # ---------------- IMAGEN ----------------
 image = Image.open('OIG7.jpg')
@@ -26,7 +26,6 @@ st.image(image, width=250)
 # ---------------- SIDEBAR ----------------
 with st.sidebar:
     st.header("⚙️ Configuración")
-    st.info("1. Presiona el botón\n2. Habla\n3. Traduce y escucha")
 
     idiomas = {
         "Español": "es",
@@ -37,51 +36,38 @@ with st.sidebar:
         "Bengali": "bn"
     }
 
-    in_lang = st.selectbox("🌐 Idioma entrada", list(idiomas.keys()))
-    out_lang = st.selectbox("🌍 Idioma salida", list(idiomas.keys()))
+    in_lang = st.selectbox("🌐 Idioma de entrada", list(idiomas.keys()))
+    out_lang = st.selectbox("🌍 Idioma de salida", list(idiomas.keys()))
 
-    tld = st.selectbox("🎙️ Acento", {
+    acentos = {
         "Default": "com",
         "EE.UU": "com",
         "Reino Unido": "co.uk",
         "Australia": "com.au"
-    }.keys())
+    }
 
-    tld = {
-        "Default": "com",
-        "EE.UU": "com",
-        "Reino Unido": "co.uk",
-        "Australia": "com.au"
-    }[tld]
+    tld = acentos[st.selectbox("🎙️ Acento", list(acentos.keys()))]
 
     mostrar_texto = st.checkbox("📄 Mostrar texto traducido")
 
-# ---------------- BOTÓN VOZ ----------------
-st.subheader("🎤 Presiona y habla")
+# ---------------- BOTÓN GRABAR ----------------
+st.subheader("🎤 Paso 1: Grabar voz")
 
-stt_button = Button(label="🎙️ Escuchar", width=200)
+stt_button = Button(label="🎤 Grabar (habla ahora)", width=250)
 
 stt_button.js_on_event("button_click", CustomJS(code="""
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     var recognition = new SpeechRecognition();
 
     recognition.continuous = false;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
     recognition.lang = 'es-ES';
 
-    // 🔊 Evento cuando empieza
     document.dispatchEvent(new CustomEvent("LISTENING", {detail: "start"}));
 
     recognition.onresult = function (e) {
-        var value = "";
-        for (var i = e.resultIndex; i < e.results.length; ++i) {
-            if (e.results[i].isFinal) {
-                value += e.results[i][0].transcript;
-            }
-        }
-        if (value != "") {
-            document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: value}));
-        }
+        var text = e.results[0][0].transcript;
+        document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: text}));
     }
 
     recognition.onend = function() {
@@ -100,10 +86,10 @@ result = streamlit_bokeh_events(
     debounce_time=0
 )
 
-# ---------------- ESTADO ESCUCHANDO ----------------
+# ---------------- ESTADO ----------------
 if result and "LISTENING" in result:
     if result["LISTENING"] == "start":
-        st.warning("🎤 Escuchando... habla ahora")
+        st.info("🎙️ Te estoy escuchando...")
     elif result["LISTENING"] == "stop":
         st.success("✅ Grabación finalizada")
 
@@ -112,10 +98,10 @@ text = ""
 
 if result and "GET_TEXT" in result:
     text = result.get("GET_TEXT")
-    st.subheader("📝 Texto detectado")
+    st.subheader("📝 Paso 2: Lo que dijiste")
     st.success(text)
 
-# ---------------- FUNCIONES ----------------
+# ---------------- TRADUCTOR ----------------
 translator = Translator()
 
 def text_to_speech(input_language, output_language, text, tld):
@@ -127,14 +113,16 @@ def text_to_speech(input_language, output_language, text, tld):
     if not os.path.exists("temp"):
         os.mkdir("temp")
 
-    file_path = f"temp/audio.mp3"
+    file_path = "temp/audio.mp3"
     tts.save(file_path)
 
     return file_path, trans_text
 
 # ---------------- BOTÓN TRADUCIR ----------------
 if text:
-    if st.button("🌍 Traducir y escuchar"):
+    st.subheader("🌍 Paso 3: Traducir")
+
+    if st.button("🌍 Traducir texto"):
 
         with st.spinner("🔄 Traduciendo..."):
             audio_path, output_text = text_to_speech(
@@ -144,11 +132,13 @@ if text:
                 tld
             )
 
-        st.subheader("🔊 Resultado")
+        st.subheader("📄 Traducción")
+        st.success(output_text)
+
+        st.subheader("🔊 Paso 4: Escuchar resultado")
         st.audio(audio_path)
 
         if mostrar_texto:
-            st.subheader("📄 Texto traducido")
             st.info(output_text)
 
 # ---------------- LIMPIEZA ----------------
@@ -163,5 +153,5 @@ remove_files()
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
-st.caption("✨ App by Angie 💅 | Voz + Traducción + IA")
+st.caption("✨ Hecho con Streamlit + Voz + IA")
 
